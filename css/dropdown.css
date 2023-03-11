@@ -1,0 +1,22 @@
+@import url(./index.css);
+
+.dropdown {
+	position: relative;
+	display: inline-block;
+}
+.dropdown-activator {
+	display: inline-flex;
+	height: 40px;
+	width: 40px;
+	align-items: center;
+	justify-content: center;
+}
+.dropdown-content {
+	left: 0;
+	top: 50px;
+	background-color: var(--bg-a9);
+	display: none;
+	position: absolute;
+	z-index: 1000;
+	padding: 5px;
+}
