@@ -6,7 +6,7 @@ var mouseDown = false,
 
 	px = 0,
 	py = 0,
-	easing = 0.3,
+	easing = 0.4,
 
 	brushWidth = 5,
 
@@ -38,7 +38,6 @@ function setColor(bg) {
 	fillColor = bg;
 }
 
-
 // 
 
 function setup() {
@@ -50,6 +49,8 @@ function mousePressed() {
 	y = mouseY;
 	px = mouseX;
 	py = mouseY;
+
+	console.log("a");
 
 	return false;
 }
@@ -84,8 +85,7 @@ let toolSelected;
 
 function initTools() {
 	document.querySelectorAll(".select-tool").forEach((v) => {
-		console.log(v);
-		v.addEventListener("click", (e) => {
+		compListener(v, (e) => {
 			if(!toolSelected || currentTool === "") {
 				toolSelected = v;
 				
@@ -103,6 +103,29 @@ function initTools() {
 			currentTool = "";
 		})
 	})
+}
+
+/**
+ * Adds multiple listeners to multiple events.
+ * @param {string} el 
+ * @param {object} events 
+ * @param {function} func 
+ */
+function multiListener(el, events, func) {
+	if(!typeof events === "object") throw new Error("Invalid events");
+	if(!typeof func === "function") throw new Error("Invalid function");
+
+	events.forEach((v) => {
+		el.addEventListener(v, func);
+	})
+}
+
+/**
+ * Function to fix compatibility on mobile.
+ * Relies on multiListener().
+ */
+function compListener(el, func) {
+	multiListener(el, ["click", "touchmove", "touchend"], func);
 }
 
 function downloadCanvas(type) {
@@ -235,31 +258,35 @@ const toolbars = [
 	{
 		name: "export-options",
 		content: `
-			Export as... &nbsp;<a href="#" onclick="downloadCanvas('image/png')">PNG</a> ,&nbsp;<a href="#" onclick="downloadCanvas('image/jpegs')">JPEG</a>
+			Export as... &nbsp;<a href="#" onclick="downloadCanvas('image/png')">PNG</a> ,&nbsp;<a href="#" onclick="downloadCanvas('image/jpeg')">JPEG</a>
 		`
 	}
 ]
 
+
+
 toolbars.forEach(v => {
-	const el = document.querySelector(`.toolbar .items li.item.${v.name}`);
-	
-	el.addEventListener("click", () => {
+	compListener(document.querySelector(`.toolbar .items li.item.${v.name}`), () => {
 		if (selectedToolbar !== v.name) {
-
-			if(selectedToolbar) {
-				document.querySelector(`.toolbar .items li.item.${selectedToolbar}`).classList.remove("selected");
-			}
-
-			selectedToolbar = v.name;
-			el.classList.add("selected");
 			setToolbar(v.name);
 		}
 	})
 })
 
-function setToolbar(type) {
+window.onload = () => {
+	setToolbar("tool-selector");
+}
 
+function setToolbar(type) {
+	const el = document.querySelector(`.toolbar .items li.item.${type}`);
 	console.log("Setting toolbar to " + type);
+
+	if(selectedToolbar) {
+		document.querySelector(`.toolbar .items li.item.${selectedToolbar}`).classList.remove("selected");
+	}
+
+	selectedToolbar = type;
+	el.classList.add("selected");
 
 	const toolContent = toolbars.find(v => v.name === type).content;
 
