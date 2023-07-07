@@ -270,3 +270,34 @@ a.button.button-success:hover {
 	height: 100%;
 	margin: 10px;
 }
+
+/* inputs */
+
+.input {
+	display: flex;
+	flex-direction: column;
+	margin: 5px;
+}
+
+.input label {
+	margin-bottom: 5px;
+}
+
+.input input {
+	padding: 5px;
+	border-radius: 5px;
+	border: 1px solid #777;
+}
+
+.input input:focus {
+	outline: none;
+	border: 1px solid var(--bg-primary);
+}
+
+/* Make submit button look like primary button */
+
+.input input[type="submit"] {
+	background-color: var(--bg-primary);
+	border: 1px solid var(--bg-primary-hover);
+	color: #fff;	
+}
