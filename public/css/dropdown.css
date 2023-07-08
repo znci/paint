@@ -1,4 +1,13 @@
-@import url(./index.css);
+/*
+ * dropdown.css
+ * (c) 2021-2023 znci. All rights reserved.
+ * -
+ * Part of the znci Paint project.
+ * Please give credit where credit is due.
+ * licensing: hello@znci.dev
+ */
+
+ @import url(./index.css);
 
 .dropdown {
 	position: relative;

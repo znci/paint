@@ -1,5 +1,25 @@
+/**
+ * @fileoverview The main router for the znci Paint project.
+ * -
+ * routes/index.js
+ * (c) 2021-2023 znci. All rights reserved.
+ * -
+ * Part of the znci Paint project.
+ * Please give credit where credit is due.
+ * licensing: hello@znci.dev
+ */
+
 var express = require("express");
 var router = express.Router();
+var expressWs = require("express-ws")(router);
+var aWss = expressWs.getWss("/");
+var SQL = require("../lib/db");
+
+var db = new SQL("./db.sqlite", { verbose: true });
+
+db.run(
+  "CREATE TABLE IF NOT EXISTS collabs (id TEXT PRIMARY KEY, name TEXT, owner TEXT, created_at TEXT)"
+);
 
 router.get("/", function (req, res, next) {
   res.sendFile("index.html");
@@ -15,18 +35,44 @@ router.get("/app/collaborate", function (req, res, next) {
 
 router.post("/app/collaborate", function (req, res, next) {
   var collab_id = req.body.collab_id;
-  // TODO: check if collab_id is valid
-  res.redirect("/app/collaborate/" + collab_id);
-});
 
-router.get("/app/collaborate/:collab_id", function (req, res, next) {
-  var collab_id = req.params.collab_id;
-  // TODO: collaborative painting
-  res.send(collab_id);
+  if (!collab_id) {
+    collab_id = randomStr(10);
+  }
+
+  db.run("INSERT INTO collabs VALUES (?, ?, ?, ?)", [
+    collab_id,
+    req.body.name,
+    req.body.owner,
+    new Date().toISOString()
+  ]);
+  res.redirect("/app/collaborate/" + collab_id);
 });
 
 router.get("/favicon.ico", function (req, res, next) {
   res.sendFile("favicon.ico", { root: "./public" });
+});
+
+router.get("/app/collaborate/:collab_id", function (req, res, next) {
+  var collab_id = req.params.collab_id;
+
+  db.get("SELECT * FROM collabs WHERE id = ?", [collab_id]).then((collab) => {
+    if (!collab) {
+      res.redirect("/app/collaborate");
+    } else {
+      res.sendFile("collab_paint.html", { root: "./public" });
+    }
+  });
+
+  res.send("uh oh spaghettio 404");
+});
+
+router.ws("/app/collaborate/:collab_id", function (ws, req) {
+  ws.on("message", function (msg) {
+    aWss.clients.forEach(function (client) {
+      client.send(msg);
+    });
+  });
 });
 
 module.exports = router;

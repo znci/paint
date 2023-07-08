@@ -1,3 +1,14 @@
+/**
+ * @fileoverview Express app declaration.
+ * -
+ * app.js
+ * (c) 2021-2023 znci. All rights reserved.
+ * -
+ * Part of the znci Paint project.
+ * Please give credit where credit is due.
+ * licensing: hello@znci.dev
+ */
+
 var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");
@@ -6,6 +17,7 @@ var logger = require("morgan");
 var indexRouter = require("./routes/index");
 
 var app = express();
+var expressWs = require("express-ws")(app);
 
 app.use(logger("dev"));
 app.use(express.json());
