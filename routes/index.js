@@ -12,8 +12,24 @@
 var express = require("express");
 var router = express.Router();
 var expressWs = require("express-ws")(router);
-var aWss = expressWs.getWss("/");
 var SQL = require("../lib/db");
+
+var connections = [];
+
+function broadcast(msg) {
+  connections.forEach((con) => {
+    con.send(msg);
+  });
+}
+
+function randomStr(len) {
+  var result = "";
+  var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for (var i = 0; i < len; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
 
 var db = new SQL("./db.sqlite", { verbose: true });
 
@@ -60,18 +76,17 @@ router.get("/app/collaborate/:collab_id", function (req, res, next) {
     if (!collab) {
       res.redirect("/app/collaborate");
     } else {
-      res.sendFile("collab_paint.html", { root: "./public" });
+      res.sendFile("collab.html", { root: "./public" });
     }
   });
 
-  res.send("uh oh spaghettio 404");
+  //   res.send("uh oh spaghettio 404");
 });
 
 router.ws("/app/collaborate/:collab_id", function (ws, req) {
+  connections.push(ws);
   ws.on("message", function (msg) {
-    aWss.clients.forEach(function (client) {
-      client.send(msg);
-    });
+    broadcast(msg);
   });
 });
 
