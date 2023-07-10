@@ -17,7 +17,6 @@ var logger = require("morgan");
 var indexRouter = require("./routes/index");
 
 var app = express();
-var expressWs = require("express-ws")(app);
 
 app.use(logger("dev"));
 app.use(express.json());

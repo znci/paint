@@ -11,16 +11,7 @@
 
 var express = require("express");
 var router = express.Router();
-var expressWs = require("express-ws")(router);
 var SQL = require("../lib/db");
-
-var connections = [];
-
-function broadcast(msg) {
-  connections.forEach((con) => {
-    con.send(msg);
-  });
-}
 
 function randomStr(len) {
   var result = "";
@@ -83,11 +74,4 @@ router.get("/app/collaborate/:collab_id", function (req, res, next) {
   //   res.send("uh oh spaghettio 404");
 });
 
-router.ws("/app/collaborate/:collab_id", function (ws, req) {
-  connections.push(ws);
-  ws.on("message", function (msg) {
-    broadcast(msg);
-  });
-});
-
-module.exports = router;
+(module.exports = router), db;

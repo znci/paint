@@ -6,7 +6,12 @@ var mouseDown = false,
   py = 0,
   easing = 0.4,
   brushWidth = 5,
-  currentTool;
+  currentTool,
+  mouseDragPoints = [],
+  debug = false;
+//
+// M: WebSocket stuff
+//
 
 function randomStr() {
   var str = "";
@@ -17,24 +22,25 @@ function randomStr() {
   return str;
 }
 
-// WS
 // RoomID is defined in the URL: /app/collaborate/:roomid
 var roomid = window.location.pathname.split("/")[3];
 var ws = new WebSocket(`ws://127.0.0.1:3000/app/collaborate/${roomid}`);
 var myUUID = randomStr(10);
 
 ws.onopen = function () {
-  ws.send({ room: roomid, msg: `connected userid:${myUUID}` });
+  ws.send(JSON.parse({ room: roomid, user: myUUID, msg: `connected` }));
 };
 
 ws.onmessage = function (msg) {
-  console.log(msg);
+  console.log(msg.data);
   var data = JSON.parse(msg.data);
   if (data.room === roomid) {
     // The thing is: this is a global WS server. We need to filter out messages that aren't for this room. Problem is, this means anyone with chrome dev tools and a simple script override can listen in on other rooms. I'll fix this later.
     // Granted, if you're using a web-based collaborative drawing app, you probably don't care about security.
     if (data.msg.startsWith("draw")) {
-      wsParseDrawCommand(data.msg);
+      wsParseDrawCommand(data);
+    } else if (data.msg.startsWith("color")) {
+      wsParseColorCommand(data);
     }
   }
 };
@@ -43,7 +49,10 @@ ws.onclose = function () {
   alert("The server closed the connection. Please refresh the page.");
   document.querySelector(".p5Canvas").style.display = "none";
 };
-// stuff
+
+//
+// M: Helper functions
+//
 
 function setPenWidth(int) {
   brushWidth = int;
@@ -55,6 +64,7 @@ function setEasing(int) {
   easing = int;
 }
 function setColor(bg) {
+  //   ws.send(JSON.stringify({ room: roomid, user: myUUID, msg: `color ${bg}` }));
   console.log(`Set pen color to ${bg}`);
   document.querySelectorAll(".color-selected").forEach((v) => {
     v.style.backgroundColor = bg;
@@ -70,6 +80,8 @@ function setColor(bg) {
 }
 
 //
+// M: Canvas stuff
+//
 
 function setup() {
   createCanvas(windowWidth, windowHeight - 50);
@@ -81,8 +93,22 @@ function mousePressed() {
   px = mouseX;
   py = mouseY;
 
-  console.log("a");
+  return false;
+}
 
+function mouseReleased() {
+  mouseDragPoints.map((v) => {
+    line(v.x, v.y, v.px, v.py);
+  });
+
+  emitWSRequest({
+    room: roomid,
+    user: myUUID,
+    classifier: "clumpDraw",
+    value: mouseDragPoints
+  });
+
+  mouseDragPoints = [];
   return false;
 }
 
@@ -93,15 +119,18 @@ function mouseDragged() {
         targetY = mouseY;
       x += (targetX - x) * easing;
       y += (targetY - y) * easing;
-
       stroke(fillColor);
-      console.log("Drawing fill color", fillColor);
       strokeWeight(brushWidth);
-      console.log("Drawing stroke weight", brushWidth);
       line(x, y, px, py);
-      console.log("Drawing line", x, y, px, py);
 
-      wsEmitDrawCommand();
+      mouseDragPoints.push({
+        x: x,
+        y: y,
+        px: px,
+        py: py,
+        color: fillColor,
+        weight: brushWidth
+      });
 
       px = x;
       py = y;
@@ -114,39 +143,33 @@ function mouseDragged() {
   return false;
 }
 
-function wsParseDrawCommand(msg) {
-  // Parse a WebSocket draw command.
-  // Format: "draw <x> <y> <px> <py> <fillColor> <brushWidth>"
-  // Example: "draw 100 100 100 100 rgb(255,255,255) 5"
-
-  var args = msg.split(" ");
-  var x = args[1];
-  var y = args[2];
-  var px = args[3];
-  var py = args[4];
-  var fillColor = args[5];
-  var brushWidth = args[6];
-
-  stroke(fillColor);
-  strokeWeight(brushWidth);
-  line(x, y, px, py);
-  console.log("Command parsed:", x, y, px, py, fillColor, brushWidth);
-  return false; // prevent default
+function emitWSRequest(data) {
+  ws.send(JSON.stringify(data));
 }
 
-function wsEmitDrawCommand() {
-  // Parse a draw command as a WS message: {"room":"roomid","msg":"draw <x> <y> <px> <py> <fillColor> <brushWidth>"}
-  // Example: {"room":"roomid","msg":"draw 100 100 100 100 rgb(255,255,255) 5"}
-
-  var msg = `draw ${mouseX} ${mouseY} ${px} ${py} ${fillColor} ${brushWidth}`;
-  ws.send(JSON.stringify({ room: roomid, msg: msg }));
-  console.log("Command sent:", msg);
-  return false; // prevent default
+function parseWSRequest(data) {
+  if (data.room === roomid) {
+    switch (data.classifier) {
+      case "clumpDraw":
+        parseClumpDraw(data);
+        break;
+      default:
+        break;
+    }
+  }
 }
 
-/*======================================
-	TOOLS
-======================================*/
+function parseClumpData(data) {
+  data.value.map((v) => {
+    stroke(v.color);
+    strokeWeight(v.weight);
+    line(v.x, v.y, v.px, v.py);
+  });
+}
+
+//
+// M: Toolbar stuff
+//
 
 let toolSelected;
 
@@ -171,6 +194,10 @@ function initTools() {
     });
   });
 }
+
+//
+// znci tools overrides
+//
 
 /**
  * Adds multiple listeners to multiple events.
