@@ -146,7 +146,7 @@ function downloadCanvas(type) {
 	document.body.appendChild(a);
 	a.click();
 	document.body.removeChild(a);
-};
+}
 
 // toolbar ugh
 
